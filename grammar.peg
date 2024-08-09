@@ -7,13 +7,78 @@ Script          <- Value EOF
 
 EOF             <- !.
 
-Value           <- IntegerLiteral
- 
-IntegerLiteral  <- [+\-]? ('0' ('x' / 'X') HexNumeral 
-                           / DecimalNumeral ) [uU]?
 
-HexNumeral      <- HexDigit ([_]* HexDigit)* / '0'
+Value           <-         (Expression
+                             / Literal
+                             / Identifier
+                            ) Spacing
 
-HexDigit        <- [0-9] / [A-F] / [a-f]
+Expression      <-         LPAR Operator Value* RPAR 
 
-DecimalNumeral  <- [1-9] ([_]* [0-9])* / '0'
+LPAR            <-          Spacing '(' Spacing
+
+RPAR            <-          Spacing ')' Spacing
+
+Operator         <-         Identifier Spacing?
+
+
+Literal         <-         ( NilLiteral
+                             / FloatLiteral
+                             / IntegerLiteral          # May be a prefix of FloatLiteral
+                             / LongStringLiteral
+                             / StringLiteral
+                             / BoolLiteral
+                           )  Spacing
+
+
+
+# Atom values
+
+NilLiteral      <-    'nil'
+
+BoolLiteral     <-    ('#f' / '#t') !LetterOrDigit 
+
+LetterOrDigit  <-    [a-z] / [A-Z] / [0-9] / [_]
+
+IntegerLiteral  <-    [+\-]? ('0' ('x' / 'X') HexNumeral / DecimalNumeral ) [uU]?
+
+HexNumeral      <-    HexDigit ([_]* HexDigit)* / '0'
+
+DecimalNumeral  <-    [1-9] ([_]* [0-9])* / '0'
+
+HexDigit        <-    [0-9] / [A-F] / [a-f]
+
+FloatLiteral           <-               [+\-]? (Digits '.' Digits?  Exponent?
+                                                /  Digits Exponent
+                                                / '.' Digits Exponent?)
+
+Exponent        <-               [eE] [+\-]? Digits
+
+Digits          <-               [0-9]([_]*[0-9])*
+
+StringLiteral   <-               ["] StringChar* ["]
+
+StringChar      <-               UChar / Escape / HexByte / ![\"\n\\] . 
+
+Escape          <-               '\\' [abfnrtv\\"']
+
+HexByte         <-               '\\' 'x' HexDigit HexDigit
+
+UChar           <-               '\\' 'u' HexDigit HexDigit HexDigit HexDigit
+                                        /  '\\' 'U' HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit
+
+
+LongStringLiteral      <-               '"""' LongStringChar* '"""'
+
+LongStringChar         <-               ![\"].
+
+Identifier             <-               !BoolLiteral IdentifierPrefix IdentifierChar* Spacing 
+                                
+IdentifierPrefix       <-               Letter / [~!@$%^&*_?|<>]
+                                
+IdentifierChar         <-               LetterOrDigit / [~!@$%^&*_?|<>] / '-'
+
+Spacing                <-               ( [ \t\r\n]+
+                                         / ';' (![\r\n] .)* [\r\n])*
+
+Letter                 <-               [a-z] / [A-Z] / [_]
